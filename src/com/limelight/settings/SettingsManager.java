@@ -1,16 +1,11 @@
 package com.limelight.settings;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.Serializable;
-
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonSyntaxException;
 import com.limelight.LimeLog;
+
+import java.io.*;
 
 /**
  * Manages the settings files
@@ -110,6 +105,8 @@ public class SettingsManager {
 		} catch (FileNotFoundException e) {
 			LimeLog.warning("Could not find " + file.getName() + " settings file");
 			e.printStackTrace();
+		} catch (JsonSyntaxException e) {
+			LimeLog.warning("JSON settings are corrupt; returning null");
 		} finally {
 			if (br != null) {
 				try {

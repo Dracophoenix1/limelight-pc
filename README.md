@@ -1,27 +1,27 @@
-#Limelight
+#Moonlight
 
-[Limelight](https://github.com/limelight-stream) is an open source implementation of NVIDIA's GameStream, as used by the NVIDIA Shield, but built for Linux/OS X/Windows.
+[Moonlight](https://github.com/moonlight-stream) is an open source implementation of NVIDIA's GameStream, as used by the NVIDIA Shield, but built for Linux/OS X/Windows.
 
-Limelight-pc allows you to stream your full collection of Steam games from your powerful desktop to another PC or laptop running Linux/OS X/Windows.
+Moonlight-pc allows you to stream your full collection of Steam games from your powerful desktop to another PC or laptop running Linux/OS X/Windows.
 
-Limelight also has an [Android implementation](https://github.com/limelight-stream/limelight-android). Versions for [iOS](https://github.com/limelight-stream/limelight-ios) and [Windows and Windows Phone](https://github.com/limelight-stream/limelight-windows) are currently in development.
+Moonlight also has an [Android implementation](https://github.com/moonlight-stream/moonlight-android). Versions for [iOS](https://github.com/moonlight-stream/moonlight-ios) and [Windows and Windows Phone](https://github.com/moonlight-stream/moonlight-windows) are currently in development.
 
 ##Features
 
 * Streams Steam and all of your games from your PC to your Linux/OS X/Windows machine
 * Keyboard and Mouse support
 * Full support for Xbox 360 controllers, PS3 and PS4 controllers, and other HID gamepads
-* Full Windows, OS X, and Linux Support
-
-##Features to come
-
+* Full Windows, OS X, and Linux Support* 
 * Use mDNS to scan for compatible GeForce Experience (GFE) machines on the network
 * Choose from your list of available games instead of just launching Steam
+
+##Features to come
+* Hardware accelerated video decoding
 
 ##Installation
 
 * Download [GeForce Experience](http://www.geforce.com/geforce-experience) and install on your Windows PC
-* Download the appropriate jar from the [GitHub releases page](https://github.com/limelight-stream/limelight-pc/releases)
+* Download the appropriate jar from the [GitHub releases page](https://github.com/moonlight-stream/moonlight-pc/releases)
 
 ##Requirements
 
@@ -32,14 +32,14 @@ Limelight also has an [Android implementation](https://github.com/limelight-stre
 
 * Ensure your machines are on the same network
 * Turn on Shield Streaming in the GFE settings
-* In Limelight, enter your PC's IP or Hostname and click "Pair".
+* In Moonlight, enter your PC's IP or Hostname and click "Pair".
 * Accept the pairing confirmation on your PC
 * For gamepad support, make sure you've mapped your controller in the Options -> Gamepad Settings menu.
-* In Limelight, click "Start Streaming"
+* In Moonlight, click "Start Streaming"
 * Play games!
 
-To launch Limelight from a command line:
-* `java -jar limelight-[os].jar -host address [options]`
+To launch Moonlight from a command line:
+* `java -jar moonlight-[os].jar -host address [options]`
 * `-host` [address] the address to connect to. This can be a hostname or ip
   address.
 * `-pair` [address] the address to pair to. This can be a hostname or ip address.
@@ -49,6 +49,7 @@ To launch Limelight from a command line:
 * `-30fps` use 30 fps stream (default)
 * `-60fps` use 60 fps stream
 
+For example, to launch a game from your gaming rig that has the address 192.168.0.100 on your home network in full screen, 720p, and 30fps on a 64-bit Windows computer, your command would look like to `java -jar moonlight-win64.jar -host 192.168.0.100 -fs -720 -30fps`
 
 ##Contribute
 
@@ -58,7 +59,7 @@ This project is being actively developed at [XDA Developers](http://forum.xda-de
 2. Write code
 3. Send Pull Requests
 
-Check out our [website](http://limelight-stream.com) for project links and information.
+Check out our [website](http://moonlight-stream.com) for project links and information.
 
 ##Authors
 
@@ -67,6 +68,5 @@ Check out our [website](http://limelight-stream.com) for project links and infor
 * [Aaron Neyer](https://github.com/Aaronneyer)  
 * [Andrew Hennessy](https://github.com/yetanothername)
 
-Limelight is the work of students at [Case Western](http://case.edu) and was
+Moonlight is the work of students at [Case Western](http://case.edu) and was
 started as a project at [MHacks](http://mhacks.org).
-

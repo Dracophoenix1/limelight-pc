@@ -1,26 +1,18 @@
-package com.limelight.gui;
-
-import java.awt.Dimension;
-import java.awt.Toolkit;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
-
-import javax.swing.Box;
-import javax.swing.BoxLayout;
-import javax.swing.JCheckBox;
-import javax.swing.JComboBox;
-import javax.swing.JFrame;
-import javax.swing.JPanel;
-import javax.swing.JSlider;
-import javax.swing.JLabel;
-import javax.swing.event.ChangeEvent;
-import javax.swing.event.ChangeListener;
+ package com.limelight.gui;
 
 import com.limelight.settings.PreferencesManager;
 import com.limelight.settings.PreferencesManager.Preferences;
 import com.limelight.settings.PreferencesManager.Preferences.Resolution;
+
+import javax.swing.*;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
+
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 
 /**
  * A frame that holds user preferences such as streaming resolution
@@ -28,10 +20,10 @@ import com.limelight.settings.PreferencesManager.Preferences.Resolution;
  */
 public class PreferencesFrame extends JFrame {
 	private static final long serialVersionUID = 1L;
-	private JComboBox resolution;
+	private JComboBox<Resolution> resolution;
+	private JLabel bitrateLabel;
 	private JSlider bitrate;
-	private JCheckBox fullscreen;
-	private Preferences prefs;
+	private JCheckBox fullscreen, allowResolutionChange, keepAspectRatio, localAudio;
 	
 	/**
 	 * Construcs a new frame and loads the saved preferences.
@@ -39,28 +31,27 @@ public class PreferencesFrame extends JFrame {
 	 */
 	public PreferencesFrame() {
 		super("Preferences");
-		this.setSize(200, 200);
+		this.setSize(350, 340);
 		this.setResizable(false);
-		this.setAlwaysOnTop(true);
-		prefs = PreferencesManager.getPreferences();
 	}
 	
 	/**
 	 * Constructs all components of the frame and makes the frame visible to the user.
 	 */
 	public void build() {
+		final Preferences prefs = PreferencesManager.getPreferences();
 		
 		JPanel mainPanel = new JPanel();
 		mainPanel.setLayout(new BoxLayout(mainPanel, BoxLayout.Y_AXIS));
 		
-		resolution = new JComboBox();
+		resolution = new JComboBox<Resolution>();
 		for (Resolution res : Resolution.values()) {
 			resolution.addItem(res);
 		}
 		
 		resolution.setSelectedItem(prefs.getResolution());
 		
-        JLabel bitrateLabel = new JLabel("Maximum Bitrate", JLabel.CENTER);
+		bitrateLabel = new JLabel("Maximum Bitrate = " + prefs.getBitrate() + " Mbps", JLabel.CENTER);
 		bitrate = new JSlider(JSlider.HORIZONTAL, 0, 100, prefs.getBitrate());
 		bitrate.setMajorTickSpacing(20);
 		bitrate.setMinorTickSpacing(1);
@@ -71,6 +62,7 @@ public class PreferencesFrame extends JFrame {
 		bitrate.addChangeListener(new ChangeListener() {
 			public void stateChanged(ChangeEvent ce) {
 				bitrate.setToolTipText(Integer.toString(bitrate.getValue()) + " Mbps");
+				bitrateLabel.setText("Maximum Bitrate = " + bitrate.getValue() + " Mbps");
 			}
 		});
 
@@ -80,10 +72,19 @@ public class PreferencesFrame extends JFrame {
 				bitrate.setValue(newRes.defaultBitrate);
 			}
 		});
-		
+
 		
 		fullscreen = new JCheckBox("Fullscreen");
 		fullscreen.setSelected(prefs.getFullscreen());
+		
+		allowResolutionChange = new JCheckBox("Change display resolution in fullscreen mode");
+		allowResolutionChange.setSelected(prefs.getAllowResolutionChange());
+		
+		keepAspectRatio = new JCheckBox("Keep stream aspect ratio");
+		keepAspectRatio.setSelected(prefs.isKeepAspectRatio());
+		
+		localAudio = new JCheckBox("Play audio on host PC");
+		localAudio.setSelected(prefs.getLocalAudio());
 	
 		Box resolutionBox = Box.createHorizontalBox();
 		resolutionBox.add(Box.createHorizontalGlue());
@@ -105,6 +106,21 @@ public class PreferencesFrame extends JFrame {
 		fullscreenBox.add(fullscreen);
 		fullscreenBox.add(Box.createHorizontalGlue());
 		
+		Box allowResolutionChangeBox = Box.createHorizontalBox();
+		allowResolutionChangeBox.add(Box.createHorizontalGlue());
+		allowResolutionChangeBox.add(allowResolutionChange);
+		allowResolutionChangeBox.add(Box.createHorizontalGlue());
+		
+		Box keepAspectRatioBox = Box.createHorizontalBox();
+		keepAspectRatioBox.add(Box.createHorizontalGlue());
+		keepAspectRatioBox.add(keepAspectRatio);
+		keepAspectRatioBox.add(Box.createHorizontalGlue());
+		
+		Box localAudioBox = Box.createHorizontalBox();
+		localAudioBox.add(Box.createHorizontalGlue());
+		localAudioBox.add(localAudio);
+		localAudioBox.add(Box.createHorizontalGlue());
+		
 		mainPanel.add(Box.createVerticalStrut(10));
 		mainPanel.add(resolutionBox);
 		mainPanel.add(Box.createVerticalStrut(5));
@@ -113,15 +129,19 @@ public class PreferencesFrame extends JFrame {
 		mainPanel.add(bitrateBox);
 		mainPanel.add(Box.createVerticalStrut(5));
 		mainPanel.add(fullscreenBox);
+		mainPanel.add(Box.createVerticalStrut(5));
+		mainPanel.add(allowResolutionChangeBox);
+		mainPanel.add(Box.createVerticalStrut(5));
+		mainPanel.add(keepAspectRatioBox);
+		mainPanel.add(Box.createVerticalStrut(5));
+		mainPanel.add(localAudioBox);
 		mainPanel.add(Box.createVerticalGlue());
 		
 		this.addWindowListener(new WindowAdapter() {
 			@Override
 			public void windowClosing(WindowEvent e) {
 				super.windowClosing(e);
-				if (prefsChanged()) {
-					writePreferences();
-				}
+				writePreferences(prefs);
 			}
 		});
 		
@@ -135,21 +155,15 @@ public class PreferencesFrame extends JFrame {
 	}
 	
 	/*
-	 * Checks if the preferences have changed from the cached preferences.
-	 */
-	private boolean prefsChanged() {
-		return (prefs.getResolution() != resolution.getSelectedItem()) ||
-				(prefs.getFullscreen() != fullscreen.isSelected()) ||
-				(prefs.getBitrate() != bitrate.getValue());
-	}
-	
-	/*
 	 * Writes the preferences to the disk.
 	 */
-	private void writePreferences() {
+	private void writePreferences(Preferences prefs) {
 		prefs.setFullscreen(fullscreen.isSelected());
+		prefs.setAllowResolutionChange(allowResolutionChange.isSelected());
+		prefs.setKeepAspectRatio(keepAspectRatio.isSelected());
 		prefs.setBitrate(bitrate.getValue());
 		prefs.setResolution((Resolution)resolution.getSelectedItem());
+		prefs.setLocalAudio(localAudio.isSelected());
 		PreferencesManager.writePreferences(prefs);
 	}
 	

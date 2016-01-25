@@ -7,18 +7,21 @@ import java.net.UnknownHostException;
 
 import javax.swing.JFrame;
 import javax.swing.JOptionPane;
+import javax.swing.UIManager;
+import javax.swing.UnsupportedLookAndFeelException;
 
 import com.limelight.binding.LibraryHelper;
 import com.limelight.binding.PlatformBinding;
 import com.limelight.gui.MainFrame;
 import com.limelight.gui.StreamFrame;
-import com.limelight.input.gamepad.Gamepad;
+import com.limelight.input.gamepad.GamepadHandler;
 import com.limelight.input.gamepad.GamepadListener;
 import com.limelight.input.gamepad.NativeGamepad;
 import com.limelight.nvstream.NvConnection;
 import com.limelight.nvstream.NvConnectionListener;
 import com.limelight.nvstream.StreamConfiguration;
 import com.limelight.nvstream.av.video.VideoDecoderRenderer;
+import com.limelight.nvstream.http.NvApp;
 import com.limelight.nvstream.http.NvHTTP;
 import com.limelight.nvstream.http.PairingManager;
 import com.limelight.settings.PreferencesManager;
@@ -41,8 +44,22 @@ public class Limelight implements NvConnectionListener {
 	private NvConnection conn;
 	private boolean connectionTerminating;
 	private static JFrame limeFrame;
-	private Gamepad gamepad;
+	private GamepadHandler gamepad;
 	private VideoDecoderRenderer decoderRenderer;
+	
+	public static void displayUiMessage(JFrame frame, String message, String title, int type) {
+		if (COMMAND_LINE_LAUNCH) {
+			if (type == JOptionPane.ERROR_MESSAGE) {
+				System.err.println(message);
+			}
+			else {
+				System.out.println(message);
+			}
+		}
+		else {
+			JOptionPane.showMessageDialog(frame, message, title, type);
+		}
+	}
 
 	/**
 	 * Constructs a new instance based on the given host
@@ -55,13 +72,13 @@ public class Limelight implements NvConnectionListener {
 	/*
 	 * Creates a connection to the host and starts up the stream.
 	 */
-	private void startUp(StreamConfiguration streamConfig, Preferences prefs) {
+	public void startUp(StreamConfiguration streamConfig, Preferences prefs) {
 		streamFrame = new StreamFrame();
 
 		decoderRenderer = PlatformBinding.getVideoDecoderRenderer();
 		
 		conn = new NvConnection(host, prefs.getUniqueId(), this, streamConfig, PlatformBinding.getCryptoProvider());
-		streamFrame.build(this, conn, streamConfig, prefs.getFullscreen());
+		streamFrame.build(this, conn, streamConfig, prefs);
 		conn.start(PlatformBinding.getDeviceName(), streamFrame,
 				VideoDecoderRenderer.FLAG_PREFER_QUALITY,
 				PlatformBinding.getAudioRenderer(),
@@ -72,12 +89,14 @@ public class Limelight implements NvConnectionListener {
 	 * Creates a StreamConfiguration given a Resolution. 
 	 * Used to specify what kind of stream will be used.
 	 */
-	private static StreamConfiguration createConfiguration(Resolution res, Integer bitRate) {
+	public static StreamConfiguration createConfiguration(Resolution res, Integer bitRate, String appName, boolean localAudio) {
 		return new StreamConfiguration.Builder()
-		.setApp("Steam")
+		.setApp(new NvApp(appName))
 		.setResolution(res.width, res.height)
 		.setRefreshRate(res.frameRate)
-		.setBitrate(bitRate*1000).build();
+		.setBitrate(bitRate*1000)
+		.enableLocalAudioPlayback(localAudio)
+		.build();
 	}
 
 	/*
@@ -87,9 +106,9 @@ public class Limelight implements NvConnectionListener {
 		// Tell the user how to map the gamepad if it's a new install and there's no default for this platform
 		if (!PreferencesManager.hasExistingPreferences() &&
 				!System.getProperty("os.name").contains("Windows")) {
-			JOptionPane.showMessageDialog(null, "Gamepad mapping is not set. If you want to use a gamepad, "+
+			displayUiMessage(null, "Gamepad mapping is not set. If you want to use a gamepad, "+
 					"click the Options menu and choose Gamepad Settings. After mapping your gamepad,"+
-					" it will work while streaming.", "Limelight", JOptionPane.INFORMATION_MESSAGE);
+					" it will work while streaming.", "Moonlight", JOptionPane.INFORMATION_MESSAGE);
 		}
 
 		MainFrame main = new MainFrame();
@@ -129,11 +148,11 @@ public class Limelight implements NvConnectionListener {
 	 * Creates a new instance and starts the stream.
 	 * @param host the host pc to connect to. Can be a hostname or IP address.
 	 */
-	public static void createInstance(String host) {
+	public static void createInstance(String host, String appName) {
 		Limelight limelight = new Limelight(host);
 
 		Preferences prefs = PreferencesManager.getPreferences();
-		StreamConfiguration streamConfig = createConfiguration(prefs.getResolution(), prefs.getBitrate());
+		StreamConfiguration streamConfig = createConfiguration(prefs.getResolution(), prefs.getBitrate(), appName, prefs.getLocalAudio());
 
 		limelight.startUp(streamConfig, prefs);
 	}
@@ -151,32 +170,34 @@ public class Limelight implements NvConnectionListener {
 			} catch (IOException e) {
 			}
 		}
+		
+		// Native look and feel for all platforms
+		try {
+			UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+		} catch (ClassNotFoundException | InstantiationException | IllegalAccessException
+				| UnsupportedLookAndFeelException e) {
+		}
 
 		//fix the menu bar if we are running in osx
 		if (System.getProperty("os.name").contains("Mac OS X")) {
-			// set the name of the application menu item
-			System.setProperty("com.apple.mrj.application.apple.menu.about.name", "Limelight");
+			// set the name of the application menu item (doesn't work on newer Oracle JDK)
+			System.setProperty("com.apple.mrj.application.apple.menu.about.name", "Moonlight");
+			// enables the osx-style menu bar
+			System.setProperty("apple.laf.useScreenMenuBar", "true");
 		}
-
-		GamepadListener.getInstance().addDeviceListener(new Gamepad());
 
 		String libraryError = loadNativeLibraries();
 
-		// launching with command line arguments
-		if (args.length > 0) {
-			if (libraryError == null) {
-				parseCommandLine(args);
+		if (libraryError == null) {
+			// launching with command line arguments
+			if (args.length == 0) {
+				createFrame();
 			}
 			else {
-				// Print the error to stderr if running from command line
-				System.err.println(libraryError);
+				parseCommandLine(args);
 			}
 		} else {
-			if (libraryError == null) {
-				createFrame();
-			} else {
-				JOptionPane.showMessageDialog(null, libraryError, "Wrong JAR platform", JOptionPane.ERROR_MESSAGE);
-			}
+			displayUiMessage(null, libraryError, "Wrong JAR platform", JOptionPane.ERROR_MESSAGE);
 		}
 	}
 
@@ -184,9 +205,11 @@ public class Limelight implements NvConnectionListener {
 	private static void parseCommandLine(String[] args) {
 		String host = null;
 		boolean fullscreen = false;
+		boolean localAudio = false;
 		int resolution = 720;
 		int refresh = 60;
 		Integer bitrate = null;
+		String appName = "Steam";
 		
 		Preferences prefs = PreferencesManager.getPreferences();
 		
@@ -221,8 +244,18 @@ public class Limelight implements NvConnectionListener {
 					System.err.println("Syntax error: bitrate (in Mbps) expected after -bitrate");
 					System.exit(3);
 				}
+			} else if (args[i].equals("-app")) {
+				if (i + 1 < args.length){
+					appName = args[i+1];
+					i++;
+				} else {
+					System.err.println("Syntax error: app name expected after -app");
+					System.exit(3);
+				}
 			} else if (args[i].equals("-fs")) {
 				fullscreen = true;
+			} else if (args[i].equals("-la")) {
+				localAudio = true;
 			} else if (args[i].equals("-720")) {
 				resolution = 720;
 			} else if (args[i].equals("-768")) {
@@ -251,11 +284,12 @@ public class Limelight implements NvConnectionListener {
 			bitrate = streamRes.defaultBitrate;
 		}
 
-		StreamConfiguration streamConfig = createConfiguration(streamRes, bitrate);
+		StreamConfiguration streamConfig = createConfiguration(streamRes, bitrate, appName, localAudio);
 		
 		prefs.setResolution(streamRes);
 		prefs.setBitrate(bitrate);
 		prefs.setFullscreen(fullscreen);
+		prefs.setLocalAudio(localAudio);
 		
 		Limelight limelight = new Limelight(host);
 		limelight.startUp(streamConfig, prefs);
@@ -316,7 +350,7 @@ public class Limelight implements NvConnectionListener {
 	public void connectionStarted() {
 		streamFrame.hideSpinner();
 
-		gamepad = new Gamepad(conn);
+		gamepad = new GamepadHandler(conn);
 		GamepadListener.getInstance().addDeviceListener(gamepad);
 	}
 
@@ -351,8 +385,12 @@ public class Limelight implements NvConnectionListener {
 			httpConn = new NvHTTP(InetAddress.getByName(host),
 					uniqueId, PlatformBinding.getDeviceName(), PlatformBinding.getCryptoProvider());
 			try {
-				if (httpConn.getPairState() == PairingManager.PairState.PAIRED) {
+				String serverInfo = httpConn.getServerInfo();
+				if (httpConn.getPairState(serverInfo) == PairingManager.PairState.PAIRED) {
 					message = "Already paired";
+				}
+				else if (httpConn.getCurrentGame(serverInfo) != 0) {
+					message = "Computer is currently in a game. You must close the game before pairing.";
 				}
 				else {
 					final String pinStr = PairingManager.generatePinString();
@@ -360,8 +398,8 @@ public class Limelight implements NvConnectionListener {
 					// Spin the dialog off in a thread because it blocks
 					new Thread(new Runnable() {
 						public void run() {
-							JOptionPane.showMessageDialog(null, "Please enter the following PIN on the target PC: "+pinStr,
-									"Limelight", JOptionPane.INFORMATION_MESSAGE);
+							Limelight.displayUiMessage(null, "Please enter the following PIN on the target PC: "+pinStr,
+									"Moonlight", JOptionPane.INFORMATION_MESSAGE);
 						}
 					}).start();
 					
@@ -392,26 +430,27 @@ public class Limelight implements NvConnectionListener {
 	}
 
 	/**
-	 * Displays a message to the user in the form of an info dialog.
+	 * Displays a message to the user
 	 * @param message the message to show the user
 	 */
 	public void displayMessage(String message) {
 		streamFrame.dispose();
-		JOptionPane.showMessageDialog(limeFrame, message, "Limelight", JOptionPane.INFORMATION_MESSAGE);
+		displayUiMessage(limeFrame, message, "Moonlight", JOptionPane.INFORMATION_MESSAGE);
 	}
 
 	/**
-	 * Displays an error to the user in the form of an error dialog
+	 * Displays an error to the user
 	 * @param title the title for the dialog frame
 	 * @param message the message to show the user
 	 */
 	public void displayError(String title, String message) {
 		streamFrame.dispose();
-		JOptionPane.showMessageDialog(limeFrame, message, title, JOptionPane.ERROR_MESSAGE);
+		displayUiMessage(limeFrame, message, title, JOptionPane.ERROR_MESSAGE);
 	}
 
 	public void displayTransientMessage(String message) {
-		// FIXME: Implement transient messages
+		// FIXME: Implement transient GUI messages
+		LimeLog.info(message);
 	}
 }
 
