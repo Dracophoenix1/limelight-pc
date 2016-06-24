@@ -1,22 +1,22 @@
 #Moonlight
 
-[Moonlight](https://github.com/moonlight-stream) is an open source implementation of NVIDIA's GameStream, as used by the NVIDIA Shield, but built for Linux/OS X/Windows.
+[Moonlight](http://moonlight-stream.com) is an open source implementation of NVIDIA's GameStream, as used by the NVIDIA Shield, but built for Linux/OS X/Windows.
 
 Moonlight-pc allows you to stream your full collection of Steam games from your powerful desktop to another PC or laptop running Linux/OS X/Windows.
 
-Moonlight also has an [Android implementation](https://github.com/moonlight-stream/moonlight-android). Versions for [iOS](https://github.com/moonlight-stream/moonlight-ios) and [Windows and Windows Phone](https://github.com/moonlight-stream/moonlight-windows) are currently in development.
+Moonlight also has versions for [Android](https://github.com/moonlight-stream/moonlight-android) and  [iOS](https://github.com/moonlight-stream/moonlight-ios).
+
+#### Note: 
+Moonlight PC will be discontinued in the near future. It will replaced by a _significantly_ better client that runs as a Chrome packaged app on the Chrome Web Store. Follow the Chrome port [here](https://github.com/moonlight-stream/moonlight-chrome).
 
 ##Features
 
 * Streams Steam and all of your games from your PC to your Linux/OS X/Windows machine
 * Keyboard and Mouse support
 * Full support for Xbox 360 controllers, PS3 and PS4 controllers, and other HID gamepads
-* Full Windows, OS X, and Linux Support* 
+* Full Windows, OS X, and Linux Support
 * Use mDNS to scan for compatible GeForce Experience (GFE) machines on the network
 * Choose from your list of available games instead of just launching Steam
-
-##Features to come
-* Hardware accelerated video decoding
 
 ##Installation
 
